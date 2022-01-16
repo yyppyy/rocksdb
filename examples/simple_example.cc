@@ -462,7 +462,7 @@ int main(int argc, char *argv[]) {
     /* rocksdb init*/
     db = init_rocksdb();
     printf("--- RocksDB Configuration ---\n");
-    printf("memtable :%ldMB, block cache:%ldMB\n", MEM_TABLE_SIZE >> 20, BLK_CACHE_SIZE_MB);
+    printf("memtable: %ldMB, block cache: %ldMB\n", MEM_TABLE_SIZE >> 20, BLK_CACHE_SIZE_MB);
 
     /* launch workers on blades*/
     printf("launching workers on remote blades...\n");

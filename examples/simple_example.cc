@@ -310,7 +310,7 @@ static void *run_rocksdb_ycsb(void *args)
 
         // assign oplist to other threads on same blade
         num_op = t_args->num_op = file_size / sizeof(struct hash_test_ycsb_ops) / num_thread_tot;
-        if (num_op > MAX_OP_NUM) num_op = MAX_OP_NUM;
+        if (num_op > MAX_OP_NUM / num_thread_tot) num_op = MAX_OP_NUM / num_thread_tot;
         op_idx_base = num_op * global_thread_id;
         oplist += op_idx_base;
         for (int i = 0; i < num_thread_per_blade; ++i) {

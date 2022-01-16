@@ -21,7 +21,7 @@ using ROCKSDB_NAMESPACE::WriteOptions;
 #if defined(OS_WIN)
 std::string kDBPath = "C:\\Windows\\TEMP\\rocksdb_simple_example";
 #else
-std::string kDBPath = "/tmp/rocksdb_simple_example";
+std::string kDBPath = "/mnt/yanpeng/db";
 #endif
 
 int main() {

@@ -14,6 +14,7 @@
 #include <sched.h>
 #include <sys/time.h>
 #include <fcntl.h>
+#include <iostream>
 
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
@@ -105,6 +106,7 @@ DB* init_rocksdb() {
 
   // open DB
   Status s = DB::Open(options, kDBPath, &db);
+  if (!s.ok()) cerr << s.ToString() << endl;
   assert(s.ok());
 
   return db;
@@ -225,6 +227,7 @@ static uint64_t parse_load_ycsb(FILE *fp, uint64_t max_ops, int blade_id, int nu
                     if (is_write_rec_for_thread(op_idx, key_val, blade_id, num_nodes, thread_id, num_threads)) {
                       //TODO
                       Status s = db->Put(WriteOptions(), to_string(key_val), string(dummy_val));
+                      if (!s.ok()) cerr << s.ToString() << endl;
                       assert(s.ok());
                     }
                 }
@@ -345,10 +348,12 @@ static void *run_rocksdb_ycsb(void *args)
         if (oplist[i].opcode == YCSB_READ) {
             //TODO
             s = db->Put(WriteOptions(), to_string(oplist[i].key), string(oplist[i].value));
+            if (!s.ok()) cerr << s.ToString() << endl;
             assert(s.ok());
         } else if (oplist[i].opcode == YCSB_UPDATE) {
             //TODO
             s = db->Put(WriteOptions(), to_string(oplist[i].key), string(oplist[i].value));
+            if (!s.ok()) cerr << s.ToString() << endl;
             assert(s.ok());
         } else {
             printf("unexpected opcode[%d]\n", oplist[i].opcode);

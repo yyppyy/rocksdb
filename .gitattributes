@@ -1,0 +1,2 @@
+examples/test_mltthrd filter=lfs diff=lfs merge=lfs -text
+examples/simple_example filter=lfs diff=lfs merge=lfs -text

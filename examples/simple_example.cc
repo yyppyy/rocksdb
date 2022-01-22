@@ -355,12 +355,12 @@ static void *run_rocksdb_ycsb(void *args)
             //TODO
             s = db->Get(ropts, to_string(oplist[i].key), &read_value);
             if (!s.ok()) cerr << s.ToString() << endl;
-            assert(s.ok());
+            assert(s.ok() || s.IsNotFound());
         } else if (oplist[i].opcode == YCSB_UPDATE) {
             //TODO
             s = db->Put(wopts, to_string(oplist[i].key), string(oplist[i].value));
             if (!s.ok()) cerr << s.ToString() << endl;
-            assert(s.ok());
+            assert(s.ok() || s.IsNotFound());
         } else {
             printf("unexpected opcode[%d]\n", oplist[i].opcode);
         }

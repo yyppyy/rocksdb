@@ -202,6 +202,8 @@ static uint64_t parse_load_ycsb(FILE *fp, uint64_t max_ops, int blade_id, int nu
     ssize_t read = 0;
     int global_th_id_base = (blade_id * num_threads);
     int rc;
+    WriteOptions wopts;
+    wopts.disableWAL = true;
     /*
     for (int thread_id = 0; thread_id < num_threads; thread_id++) {
         printf("Load data[%d]: write key[%lu - %lu]\n",
@@ -226,7 +228,7 @@ static uint64_t parse_load_ycsb(FILE *fp, uint64_t max_ops, int blade_id, int nu
                     // int global_th_id = global_th_id_base + thread_id;
                     if (is_write_rec_for_thread(op_idx, key_val, blade_id, num_nodes, thread_id, num_threads)) {
                       //TODO
-                      Status s = db->Put(WriteOptions(), to_string(key_val), string(dummy_val));
+                      Status s = db->Put(wopts, to_string(key_val), string(dummy_val));
                       if (!s.ok()) cerr << s.ToString() << endl;
                       assert(s.ok());
                     }
@@ -341,18 +343,22 @@ static void *run_rocksdb_ycsb(void *args)
     err = 0;
     print_period = num_op / 10;
     Status s;
+    ReadOptions ropts;
+    WriteOptions wopts;
+    wopts.disableWAL = true;
+    string read_value;
     // auto t_start = std::chrono::high_resolution_clock::now();
     struct timeval tv_begin;
     gettimeofday(&tv_begin, NULL);
     for (uint64_t i = 0; i < num_op; i++) {
         if (oplist[i].opcode == YCSB_READ) {
             //TODO
-            s = db->Put(WriteOptions(), to_string(oplist[i].key), string(oplist[i].value));
+            s = db->Get(ropts, to_string(oplist[i].key), &read_value);
             if (!s.ok()) cerr << s.ToString() << endl;
             assert(s.ok());
         } else if (oplist[i].opcode == YCSB_UPDATE) {
             //TODO
-            s = db->Put(WriteOptions(), to_string(oplist[i].key), string(oplist[i].value));
+            s = db->Put(wopts, to_string(oplist[i].key), string(oplist[i].value));
             if (!s.ok()) cerr << s.ToString() << endl;
             assert(s.ok());
         } else {

@@ -416,6 +416,8 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
                 printf("Error: unable to create thread: %d\n", res);
                 exit(-1);
             }
+
+            sleep(1);
         }
     }
 

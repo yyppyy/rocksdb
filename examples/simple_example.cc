@@ -20,13 +20,17 @@
 #include "rocksdb/slice.h"
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
+#include "rocksdb/slice_transform.h"
+
 
 /* rocksdb */
-#define MEM_TABLE_SIZE (64L << 20)
+#define MEMTABLE_SIZE (32L << 20)
+#define NUM_MEMTABLE 4
 #define BLK_CACHE_SIZE (64L << 20)
 #define BLK_CACHE_SIZE_MB (BLK_CACHE_SIZE >> 20)
+#define NUM_BUCKET 1000
 
-/* yvsb */
+/* ycsb */
 #define MAX_VALUE_SIZE 1024
 #define MAX_LINE_SIZE (MAX_VALUE_SIZE + 256)
 //#define MAX_OP_NUM  1000000UL
@@ -44,6 +48,8 @@ using ROCKSDB_NAMESPACE::ReadOptions;
 using ROCKSDB_NAMESPACE::Status;
 using ROCKSDB_NAMESPACE::WriteBatch;
 using ROCKSDB_NAMESPACE::WriteOptions;
+using ROCKSDB_NAMESPACE::BlockBasedTableOptions;
+using ROCKSDB_NAMESPACE::SliceTransform;
 using namespace std;
 
 struct hash_test_args {
@@ -85,86 +91,58 @@ enum{
 std::string kDBPath = "/mnt/yanpeng/db";
 DB *db;
 
+
+// The prefix is the first min(length(key),`cap_len`) bytes of the key, and
+// all keys are InDomain.
+// extern const SliceTransform* NewCappedPrefixTransform(size_t cap_len);
+
 DB* init_rocksdb() {
-  DB* db;
-  Options options;
+    DB* db;
+    Options options;
 
-  options.create_if_missing = true;
+    options.create_if_missing = true;
 
-  /* trust auto opt for now */
-  options.OptimizeLevelStyleCompaction(MEM_TABLE_SIZE);
+    /* trust auto opt for now */
+    //options.OptimizeLevelStyleCompaction(MEM_TABLE_SIZE);
 
-  /* opt for in-memory db*/
-  options.OptimizeForPointLookup(BLK_CACHE_SIZE_MB);
+    /* opt for in-memory db*/
+    //options.OptimizeForPointLookup(BLK_CACHE_SIZE_MB);
 
-  /* no bg threads*/
-  options.max_background_jobs = 0;
+    /* no bg threads*/
+    options.max_background_jobs = 0;
 
-  /* mmap rw tmpfs */
-  options.allow_mmap_reads = 1;
-  options.allow_mmap_writes = 1;
+    /* mmap rw tmpfs */
+    options.allow_mmap_reads = true;
+    options.allow_mmap_writes = true;
 
-  // open DB
-  Status s = DB::Open(options, kDBPath, &db);
-  if (!s.ok()) cerr << s.ToString() << endl;
-  assert(s.ok());
+    /* memory usage */
+    options.write_buffer_size = MEMTABLE_SIZE;
+    options.max_write_buffer_number = NUM_MEMTABLE;
+    options.min_write_buffer_number_to_merge = NUM_MEMTABLE + 1;
 
-  return db;
+    /* memtable options */
+    options.prefix_extractor.reset(rocksdb::NewCappedPrefixTransform(8));
+    options.memtable_factory.reset(rocksdb::NewHashLinkListRepFactory(NUM_BUCKET));
+
+    /* table options */
+    BlockBasedTableOptions table_options;
+    // table_options.filter_policy.reset(NewBloomFilterPolicy(10, true));
+    table_options.no_block_cache = true; /* we won't hit disk */
+    // table_options.block_restart_interval = 4;
+    options.table_factory.reset(NewBlockBasedTableFactory(table_options));
+
+    /* others */
+    options.compression = rocksdb::CompressionType::kNoCompression;
+    options.max_open_files = -1;
+
+    // open DB
+    Status s = DB::Open(options, kDBPath, &db);
+    if (!s.ok()) cerr << s.ToString() << endl;
+    assert(s.ok());
+
+    return db;
 }
-/*
-  // Put key-value
-  s = db->Put(WriteOptions(), "key1", "value");
-  assert(s.ok());
-  std::string value;
-  // get value
-  s = db->Get(ReadOptions(), "key1", &value);
-  assert(s.ok());
-  assert(value == "value");
 
-  // atomically apply a set of updates
-  {
-    WriteBatch batch;
-    batch.Delete("key1");
-    batch.Put("key2", value);
-    s = db->Write(WriteOptions(), &batch);
-  }
-
-  s = db->Get(ReadOptions(), "key1", &value);
-  assert(s.IsNotFound());
-
-  db->Get(ReadOptions(), "key2", &value);
-  assert(value == "value");
-
-  {
-    PinnableSlice pinnable_val;
-    db->Get(ReadOptions(), db->DefaultColumnFamily(), "key2", &pinnable_val);
-    assert(pinnable_val == "value");
-  }
-
-  {
-    std::string string_val;
-    // If it cannot pin the value, it copies the value to its internal buffer.
-    // The intenral buffer could be set during construction.
-    PinnableSlice pinnable_val(&string_val);
-    db->Get(ReadOptions(), db->DefaultColumnFamily(), "key2", &pinnable_val);
-    assert(pinnable_val == "value");
-    // If the value is not pinned, the internal buffer must have the value.
-    assert(pinnable_val.IsPinned() || string_val == "value");
-  }
-
-  PinnableSlice pinnable_val;
-  s = db->Get(ReadOptions(), db->DefaultColumnFamily(), "key1", &pinnable_val);
-  assert(s.IsNotFound());
-  // Reset PinnableSlice after each use and before each reuse
-  pinnable_val.Reset();
-  db->Get(ReadOptions(), db->DefaultColumnFamily(), "key2", &pinnable_val);
-  assert(pinnable_val == "value");
-  pinnable_val.Reset();
-  // The Slice pointed by pinnable_val is not valid after this point
-
-  return db;
-}
-*/
 static int pin_to_core(int core_id) {
     int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
     if (core_id < 0 || core_id >= num_cores)
@@ -345,6 +323,7 @@ static void *run_rocksdb_ycsb(void *args)
     Status s;
     ReadOptions ropts;
     WriteOptions wopts;
+    ropts.verify_checksums = false;
     wopts.disableWAL = true;
     string read_value;
     // auto t_start = std::chrono::high_resolution_clock::now();
@@ -475,7 +454,7 @@ int main(int argc, char *argv[]) {
     /* rocksdb init*/
     db = init_rocksdb();
     printf("--- RocksDB Configuration ---\n");
-    printf("memtable: %ldMB, block cache: %ldMB\n", MEM_TABLE_SIZE >> 20, BLK_CACHE_SIZE_MB);
+    printf("memtable size: %ldMB, num memtable: %d\n", MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
 
     /* launch workers on blades*/
     printf("launching workers on remote blades...\n");

@@ -132,6 +132,7 @@ DB* init_rocksdb() {
     options.table_factory.reset(NewBlockBasedTableFactory(table_options));
 
     /* others */
+    options.allow_concurrent_memtable_write = true;
     options.compression = rocksdb::CompressionType::kNoCompression;
     options.max_open_files = -1;
 

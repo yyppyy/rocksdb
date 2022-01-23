@@ -15,6 +15,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <iostream>
+#include <atomic>
 
 #include "rocksdb/db.h"
 #include "rocksdb/slice.h"
@@ -61,8 +62,10 @@ struct hash_test_args {
     int num_thread_tot;
     char load_file[MAX_FILE_LEN];
     char run_file[MAX_FILE_LEN];
-    pthread_barrier_t *barrier_begin;
-    pthread_barrier_t *barrier_end;
+    //pthread_barrier_t *barrier_begin;
+    //pthread_barrier_t *barrier_end;
+    atomic_int *barrier_begin;
+    atomic_int *barrier_end;
     int num_op;
     struct hash_test_ycsb_ops *oplist;
     double res_time_in_ms;
@@ -87,6 +90,8 @@ enum{
     YCSB_READ = 1,
     YCSB_UPDATE = 2,
 };
+
+atomic_int barrier_begin, barrier_end;
 
 std::string kDBPath = "/mnt/yanpeng/db";
 DB *db;
@@ -238,7 +243,8 @@ static void *run_rocksdb_ycsb(void *args)
     uint64_t print_period;
     int64_t read_len;
     double t_tot = 0;
-    pthread_barrier_t *barrier_begin, *barrier_end;
+    //pthread_barrier_t *barrier_begin, *barrier_end;
+    atomic_int *barrier_begin, *barrier_end;
     volatile char *val = (char *)malloc(MAX_VALUE_SIZE);
     memset((void *)val, MAX_VALUE_SIZE, 0);
 
@@ -303,7 +309,11 @@ static void *run_rocksdb_ycsb(void *args)
     }
 
     // sync all threads on all blades
-    pthread_barrier_wait(barrier_begin);
+    //pthread_barrier_wait(barrier_begin);
+    barrier_begin->fetch_add(1, memory_order_release);
+    while (barrier_begin->load(memory_order_acquire) != num_thread_tot)
+        ;
+
     // retrieve oplist
     if (thread_id != 0) {
         oplist = t_args->oplist;
@@ -364,7 +374,10 @@ static void *run_rocksdb_ycsb(void *args)
                 global_thread_id, num_op, ((double)num_op / t_tot / 1000), t_tot);
 
     //done oplist
-    pthread_barrier_wait(barrier_end);
+    //pthread_barrier_wait(barrier_end);
+    barrier_end->fetch_add(1, memory_order_release);
+    while (barrier_end->load(memory_order_acquire) != num_thread_tot)
+        ;
 
     // don't exit
     while (1);
@@ -384,9 +397,11 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
     uint64_t num_ops = 0, total_num_ops = 0;
     uint64_t num_ops_per_thread = 0;
     int num_thread_tot = num_node * num_thread;
-    pthread_barrier_t barrier_begin, barrier_end;
-    pthread_barrier_init(&barrier_begin, NULL, num_thread_tot);
-    pthread_barrier_init(&barrier_end, NULL, num_thread_tot + 1);
+    //pthread_barrier_t barrier_begin, barrier_end;
+    //pthread_barrier_init(&barrier_begin, NULL, num_thread_tot);
+    //pthread_barrier_init(&barrier_end, NULL, num_thread_tot + 1);
+    barrier_begin.store(0, memory_order_release);
+    barrier_end.store(0, memory_order_release);
 
     if (num_thread_tot > MIND_NUM_MAX_THREAD) {
         printf("Cannot create more than %d threads\n", MIND_NUM_MAX_THREAD);
@@ -422,7 +437,9 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
     }
 
     //wait all worker finish
-    pthread_barrier_wait(&barrier_end);
+    //pthread_barrier_wait(&barrier_end);
+    while (barrier_end.load(memory_order_acquire) != num_thread_tot)
+        ;
 
     double total_time = 0;
     for (i = 0; i < num_thread_tot; i++) {

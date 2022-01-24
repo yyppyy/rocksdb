@@ -25,8 +25,8 @@
 
 
 /* rocksdb */
-#define MEMTABLE_SIZE (1L << 28)
-#define NUM_MEMTABLE 4
+#define MEMTABLE_SIZE (1L << 29)
+#define NUM_MEMTABLE 1
 #define BLK_CACHE_SIZE (64L << 20)
 #define BLK_CACHE_SIZE_MB (BLK_CACHE_SIZE >> 20)
 #define NUM_BUCKET 10000
@@ -35,7 +35,7 @@
 #define MAX_VALUE_SIZE 1024
 #define MAX_LINE_SIZE (MAX_VALUE_SIZE + 256)
 //#define MAX_OP_NUM  1000000UL
-#define MAX_OP_NUM  100000UL
+#define MAX_OP_NUM  50000UL
 #define LOWER_DATASET_FACTOR 1
 #define MAX_FILE_LEN 64
 #define MIND_MAX_THREAD 10

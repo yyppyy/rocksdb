@@ -35,7 +35,8 @@
 #define MAX_VALUE_SIZE 1024
 #define MAX_LINE_SIZE (MAX_VALUE_SIZE + 256)
 //#define MAX_OP_NUM  1000000UL
-#define MAX_OP_NUM  50000UL
+#define MAX_LOAD_OP_NUM  16000UL
+#define MAX_RUN_OP_NUM  48000UL
 #define LOWER_DATASET_FACTOR 1
 #define MAX_FILE_LEN 64
 #define MIND_MAX_THREAD 10
@@ -277,7 +278,7 @@ static void *run_rocksdb_ycsb(void *args)
             printf("Cannot open file: %s\n", load_file);    
             exit(-1);
         }
-        parse_load_ycsb(fp_ycsb_load, MAX_OP_NUM, blade_id, num_node, num_thread_per_blade);
+        parse_load_ycsb(fp_ycsb_load, MAX_LOAD_OP_NUM, blade_id, num_node, num_thread_per_blade);
         fclose(fp_ycsb_load);
 
         // map oplist file
@@ -297,7 +298,7 @@ static void *run_rocksdb_ycsb(void *args)
 
         // assign oplist to other threads on same blade
         num_op = t_args->num_op = file_size / sizeof(struct hash_test_ycsb_ops) / num_thread_tot;
-        if (num_op > MAX_OP_NUM / num_thread_tot) num_op = MAX_OP_NUM / num_thread_tot;
+        if (num_op > MAX_RUN_OP_NUM / num_thread_tot) num_op = MAX_RUN_OP_NUM / num_thread_tot;
         op_idx_base = num_op * global_thread_id;
         oplist += op_idx_base;
         for (int i = 0; i < num_thread_per_blade; ++i) {

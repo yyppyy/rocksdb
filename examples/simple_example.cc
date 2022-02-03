@@ -39,7 +39,10 @@
 #define MAX_RUN_OP_NUM  32000UL
 #define LOWER_DATASET_FACTOR 1
 #define MAX_FILE_LEN 64
-#define MIND_MAX_THREAD 10
+
+/* MIND */
+#define NUM_CORES_PER_BLADE 10
+#define MIND_MAX_THREAD NUM_CORES_PER_BLADE
 #define MIND_MAX_BLADE 8
 #define MIND_NUM_MAX_THREAD (MIND_MAX_THREAD * MIND_MAX_BLADE)
 
@@ -321,9 +324,9 @@ static void *run_rocksdb_ycsb(void *args)
         num_op = t_args->num_op;
     }
 
-    pin_to_core(thread_id);
-    printf("* YCSB run gtid[%d] tid[%d] num_op[%lu] oplist_off[%ld]\n",
-        global_thread_id, thread_id, num_op, (oplist - (t_args - thread_id)->oplist));
+    pin_to_core(global_thread_id % MIND_MAX_THREAD);
+    printf("* YCSB run gtid[%d] tid[%d] cpu[%d] num_op[%lu] oplist_off[%ld]\n",
+        global_thread_id, thread_id, global_thread_id % MIND_MAX_THREAD, num_op, (oplist - (t_args - thread_id)->oplist));
 
 #ifdef DISABLE_CONCURRENT_INSERT
         sleep(blade_id * 30);

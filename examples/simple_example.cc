@@ -324,9 +324,9 @@ static void *run_rocksdb_ycsb(void *args)
         num_op = t_args->num_op;
     }
 
-    pin_to_core(global_thread_id % MIND_MAX_THREAD);
-    printf("* YCSB run gtid[%d] tid[%d] cpu[%d] num_op[%lu] oplist_off[%ld]\n",
-        global_thread_id, thread_id, global_thread_id % MIND_MAX_THREAD, num_op, (oplist - (t_args - thread_id)->oplist));
+    //pin_to_core(global_thread_id % MIND_MAX_THREAD);
+    //printf("* YCSB run gtid[%d] tid[%d] cpu[%d] num_op[%lu] oplist_off[%ld]\n",
+    //    global_thread_id, thread_id, global_thread_id % MIND_MAX_THREAD, num_op, (oplist - (t_args - thread_id)->oplist));
 
 #ifdef DISABLE_CONCURRENT_INSERT
         sleep(blade_id * 30);

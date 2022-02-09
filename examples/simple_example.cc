@@ -84,10 +84,11 @@ struct hash_test_ycsb_ops
 
 enum {
     arg_node_num = 1,
-    arg_thread_num = 2,
-    arg_load_file = 3,
-    arg_run_file = 4,
-    argc_num = 5,
+    arg_thread_num,
+    arg_load_file,
+    arg_run_file,
+    arg_db_path,
+    argc_num
 };
 
 enum{
@@ -463,6 +464,8 @@ int main(int argc, char *argv[]) {
     int num_nodes = 1;
     int num_threads_per_node = 2;
     int num_threads_tot = 2;
+    string db_path;
+
     if (argc < argc_num) {
         printf("Not enough arguments...terminate\n");
         return -1;
@@ -471,6 +474,7 @@ int main(int argc, char *argv[]) {
     num_nodes = atoi(argv[arg_node_num]);
     num_threads_per_node = atoi(argv[arg_thread_num]);
     num_threads_tot = num_nodes * num_threads_per_node;
+    db_path = string(argv[arg_db_path]);
     printf("--- Test Configuration ---\n");
     printf("num blades: %d, threads per blade: %d, tot threads: %d\n",
         num_nodes, num_threads_per_node, num_threads_tot);
@@ -478,7 +482,7 @@ int main(int argc, char *argv[]) {
     /* rocksdb init*/
     db = init_rocksdb();
     printf("--- RocksDB Configuration ---\n");
-    printf("memtable size: %ldMB, num memtable: %d\n", MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
+    printf("db_path: %s\nmemtable size: %ldMB, num memtable: %d\n", db_path.c_str(), MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
 
     /* launch workers on blades*/
     printf("launching workers on remote blades...\n");

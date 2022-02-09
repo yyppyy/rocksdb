@@ -152,7 +152,7 @@ DB* init_rocksdb(const string DBPath) {
     assert(s.ok());
 
     printf("--- RocksDB Configuration ---\n");
-    printf("db_path: %s\nlogging level: %ld\nmemtable size: %ldMB, num memtable: %d\n",
+    printf("db_path: %s\nlogging level: %d\nmemtable size: %ldMB, num memtable: %d\n",
         DBPath.c_str(), options.info_log_level, MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
 
     return db;

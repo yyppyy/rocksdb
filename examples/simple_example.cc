@@ -98,7 +98,7 @@ enum{
 
 atomic_int barrier_begin, barrier_end;
 
-std::string kDBPath = "/mnt/yanpeng/db";
+//std::string kDBPath = "/mnt/yanpeng/db";
 DB *db;
 
 
@@ -106,7 +106,7 @@ DB *db;
 // all keys are InDomain.
 // extern const SliceTransform* NewCappedPrefixTransform(size_t cap_len);
 
-DB* init_rocksdb() {
+DB* init_rocksdb(const string DBPath) {
     DB* db;
     Options options;
 
@@ -147,7 +147,7 @@ DB* init_rocksdb() {
     options.max_open_files = -1;
 
     // open DB
-    Status s = DB::Open(options, kDBPath, &db);
+    Status s = DB::Open(options, DBPath, &db);
     if (!s.ok()) cerr << s.ToString() << endl;
     assert(s.ok());
 
@@ -480,7 +480,7 @@ int main(int argc, char *argv[]) {
         num_nodes, num_threads_per_node, num_threads_tot);
 
     /* rocksdb init*/
-    db = init_rocksdb();
+    db = init_rocksdb(db_path);
     printf("--- RocksDB Configuration ---\n");
     printf("db_path: %s\nmemtable size: %ldMB, num memtable: %d\n", db_path.c_str(), MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
 

@@ -146,6 +146,9 @@ DB* init_rocksdb(const string DBPath) {
     options.compression = rocksdb::CompressionType::kNoCompression;
     options.max_open_files = -1;
 
+    /* debug log*/
+    options.info_log_level = rocksdb::InfoLogLevel::INFO_LEVEL;
+
     // open DB
     Status s = DB::Open(options, DBPath, &db);
     if (!s.ok()) cerr << s.ToString() << endl;

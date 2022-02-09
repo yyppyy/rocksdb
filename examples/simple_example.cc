@@ -151,6 +151,10 @@ DB* init_rocksdb(const string DBPath) {
     if (!s.ok()) cerr << s.ToString() << endl;
     assert(s.ok());
 
+    printf("--- RocksDB Configuration ---\n");
+    printf("db_path: %s\nlogging level: $d\nmemtable size: %ldMB, num memtable: %d\n",
+        DBPath.c_str(), options.info_log_level, MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
+
     return db;
 }
 
@@ -481,8 +485,6 @@ int main(int argc, char *argv[]) {
 
     /* rocksdb init*/
     db = init_rocksdb(db_path);
-    printf("--- RocksDB Configuration ---\n");
-    printf("db_path: %s\nmemtable size: %ldMB, num memtable: %d\n", db_path.c_str(), MEMTABLE_SIZE >> 20, NUM_MEMTABLE);
 
     /* launch workers on blades*/
     printf("launching workers on remote blades...\n");

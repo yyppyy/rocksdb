@@ -12,6 +12,8 @@
 #include "test_util/sync_point.h"
 #include "util/random.h"
 
+#include "util/profile_points.h"
+
 namespace ROCKSDB_NAMESPACE {
 
 WriteThread::WriteThread(const ImmutableDBOptions& db_options)
@@ -405,9 +407,15 @@ void WriteThread::JoinBatchGroup(Writer* w) {
      *      writes in parallel.
      */
     TEST_SYNC_POINT_CALLBACK("WriteThread::JoinBatchGroup:BeganWaiting", w);
+#ifdef CONFIG_PROFILE_POINTS
+    PROFILE_START;
+#endif
     AwaitState(w, STATE_GROUP_LEADER | STATE_MEMTABLE_WRITER_LEADER |
                       STATE_PARALLEL_MEMTABLE_WRITER | STATE_COMPLETED,
                &jbg_ctx);
+#ifdef CONFIG_PROFILE_POINTS
+    PROFILE_LEAVE(pthread_self(), PP_WRITE_WAIT);
+#endif
     TEST_SYNC_POINT_CALLBACK("WriteThread::JoinBatchGroup:DoneWaiting", w);
   }
 }

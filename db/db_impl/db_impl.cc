@@ -106,6 +106,8 @@
 #include "util/string_util.h"
 #include "utilities/trace/replayer_impl.h"
 
+#include "util/profile_points.h"
+
 namespace ROCKSDB_NAMESPACE {
 
 const std::string kDefaultColumnFamilyName("default");
@@ -5303,3 +5305,30 @@ Status DBImpl::GetCreationTimeOfOldestFile(uint64_t* creation_time) {
 #endif  // ROCKSDB_LITE
 
 }  // namespace ROCKSDB_NAMESPACE
+
+std::string pp_names[NUM_PP] = {
+	"db_mutex",
+	"writer_wait"
+};
+
+struct profile_point_arr pps[MAX_PROFILE_THREADS];
+
+void print_profile_points(void) {
+    printf("--- profile points ---\n");
+    for (int pp = 0; pp < NUM_PP; ++pp) {
+        unsigned long nr = 0;
+        double avg_us, total_us = 0;
+        for (int tid = 0; tid < MAX_PROFILE_THREADS; ++tid) {
+            nr += pps[tid].arr[pp].nr;
+            total_us += pps[tid].arr[pp].time_us;
+        }
+        avg_us = total_us / nr;
+        printf("%s nr[%lu] total[%lfus] avg[%lfus]\n", pp_names[pp].c_str(), nr, total_us, avg_us);
+    }
+}
+
+void profile_add(int tid, int pp, double time_us) {
+    tid = tid % MAX_PROFILE_THREADS;
+    ++(pps[tid].arr[pp].nr);
+    pps[tid].arr[pp].time_us += time_us;
+}

@@ -27,8 +27,11 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <chrono>
 
 #include "util/string_util.h"
+
+#include "util/profile_points.h"
 
 namespace ROCKSDB_NAMESPACE {
 
@@ -79,9 +82,17 @@ Mutex::Mutex(bool adaptive) {
 Mutex::~Mutex() { PthreadCall("destroy mutex", pthread_mutex_destroy(&mu_)); }
 
 void Mutex::Lock() {
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START
+#endif
+
   PthreadCall("lock", pthread_mutex_lock(&mu_));
 #ifndef NDEBUG
   locked_ = true;
+#endif
+
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_MUTEX)
 #endif
 }
 

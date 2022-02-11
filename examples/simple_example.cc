@@ -22,6 +22,7 @@
 #include "rocksdb/options.h"
 #include "rocksdb/table.h"
 #include "rocksdb/slice_transform.h"
+#include "../util/profile_points.h"
 
 
 /* rocksdb */
@@ -492,6 +493,9 @@ int main(int argc, char *argv[]) {
     /* launch workers on blades*/
     printf("launching workers on remote blades...\n");
     launch_workers(num_nodes, num_threads_per_node, argv[arg_load_file], argv[arg_run_file]);
+
+    /* */
+    print_profile_points();
 
     /* do not exit */
     while (1);

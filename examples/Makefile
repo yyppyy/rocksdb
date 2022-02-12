@@ -20,7 +20,7 @@ all: simple_example column_families_example compact_files_example c_simple_examp
 
 #simple_example: librocksdb simple_example.cc
 simple_example: simple_example.cc
-	$(CXX) $(CXXFLAGS) $@.cc -o$@ ../librocksdb.a -I../include -O2 -std=c++11 $(PLATFORM_LDFLAGS) $(PLATFORM_CXXFLAGS) $(EXEC_LDFLAGS) -L/home/sslee/oneTBB-2017_U6/build/linux_intel64_gcc_cc7_libc2.27_kernel4.15.0_release -static
+	$(CXX) $(CXXFLAGS) $@.cc -o$@ ../librocksdb.a -I../include -O2 -std=c++11 $(PLATFORM_LDFLAGS) $(PLATFORM_CXXFLAGS) $(EXEC_LDFLAGS) -L/home/yanpeng/downloads/oneTBB-2017_U6/build/linux_intel64_gcc_cc7_libc2.27_kernel4.15.0_release -static
 
 column_families_example: librocksdb column_families_example.cc
 	$(CXX) $(CXXFLAGS) $@.cc -o$@ ../librocksdb.a -I../include -O2 -std=c++11 $(PLATFORM_LDFLAGS) $(PLATFORM_CXXFLAGS) $(EXEC_LDFLAGS)

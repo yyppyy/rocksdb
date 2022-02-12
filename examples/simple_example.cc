@@ -30,7 +30,8 @@
 #define NUM_MEMTABLE 1
 #define BLK_CACHE_SIZE (64L << 20)
 #define BLK_CACHE_SIZE_MB (BLK_CACHE_SIZE >> 20)
-#define NUM_BUCKET 10000
+#define NUM_BUCKET 10240
+#define NUM_MEMTABLE_LOCK 1024
 
 /* ycsb */
 #define MAX_VALUE_SIZE 1024
@@ -149,6 +150,10 @@ DB* init_rocksdb(const string DBPath) {
 
     /* debug log*/
     options.info_log_level = rocksdb::InfoLogLevel::INFO_LEVEL;
+
+    /* inpace update with lock*/
+    options.inplace_update_support = true;
+    options.inplace_update_num_locks = NUM_MEMTABLE_LOCK;
 
     // open DB
     Status s = DB::Open(options, DBPath, &db);

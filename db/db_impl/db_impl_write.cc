@@ -17,6 +17,8 @@
 #include "test_util/sync_point.h"
 #include "util/cast_util.h"
 
+#include "util/profile_points.h"
+
 namespace ROCKSDB_NAMESPACE {
 // Convenience methods
 Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family,
@@ -216,7 +218,13 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   bool in_parallel_group = false;
   uint64_t last_sequence = kMaxSequenceNumber;
 
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START
+#endif
   mutex_.Lock();
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_DB_WLOCK)
+#endif
 
   bool need_log_sync = write_options.sync;
   bool need_log_dir_sync = need_log_sync && !log_dir_synced_;

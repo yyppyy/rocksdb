@@ -171,9 +171,25 @@ RWMutex::RWMutex() {
 
 RWMutex::~RWMutex() { PthreadCall("destroy mutex", pthread_rwlock_destroy(&mu_)); }
 
-void RWMutex::ReadLock() { PthreadCall("read lock", pthread_rwlock_rdlock(&mu_)); }
+void RWMutex::ReadLock() { 
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START
+#endif
+  PthreadCall("read lock", pthread_rwlock_rdlock(&mu_));
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_RWMUTEX_RLOCK)
+#endif
+}
 
-void RWMutex::WriteLock() { PthreadCall("write lock", pthread_rwlock_wrlock(&mu_)); }
+void RWMutex::WriteLock() {
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START
+#endif
+  PthreadCall("write lock", pthread_rwlock_wrlock(&mu_));
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_RWMUTEX_WLOCK)
+#endif
+}
 
 void RWMutex::ReadUnlock() { PthreadCall("read unlock", pthread_rwlock_unlock(&mu_)); }
 

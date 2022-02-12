@@ -41,6 +41,8 @@
 #include "util/coding.h"
 #include "util/mutexlock.h"
 
+#include "util/profile_points.h"
+
 namespace ROCKSDB_NAMESPACE {
 
 ImmutableMemTableOptions::ImmutableMemTableOptions(
@@ -757,7 +759,13 @@ static bool SaveValue(void* arg, const char* entry) {
         FALLTHROUGH_INTENDED;
       case kTypeValue: {
         if (s->inplace_update_support) {
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START
+#endif
           s->mem->GetLock(s->key->user_key())->ReadLock();
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_MEMTABLE_RLOCK)
+#endif
         }
         Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
         *(s->status) = Status::OK();
@@ -1072,7 +1080,13 @@ Status MemTable::Update(SequenceNumber seq, const Slice& key,
         if (new_size <= prev_size) {
           char* p =
               EncodeVarint32(const_cast<char*>(key_ptr) + key_length, new_size);
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START
+#endif
           WriteLock wl(GetLock(lkey.user_key()));
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_MEMTABLE_WLOCK)
+#endif
           memcpy(p, value.data(), value.size());
           assert((unsigned)((p + value.size()) - entry) ==
                  (unsigned)(VarintLength(key_length) + key_length +

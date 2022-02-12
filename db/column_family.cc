@@ -40,6 +40,8 @@
 #include "util/cast_util.h"
 #include "util/compression.h"
 
+#include "util/profile_points.h"
+
 namespace ROCKSDB_NAMESPACE {
 
 ColumnFamilyHandleImpl::ColumnFamilyHandleImpl(
@@ -1216,7 +1218,13 @@ SuperVersion* ColumnFamilyData::GetThreadLocalSuperVersion(DBImpl* db) {
 
     if (sv && sv->Unref()) {
       RecordTick(ioptions_.stats, NUMBER_SUPERVERSION_CLEANUPS);
+#ifdef CONFIG_PROFILE_POINTS
+      PROFILE_START
+#endif
       db->mutex()->Lock();
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_DB_RLOCK)
+#endif
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.
       sv->Cleanup();

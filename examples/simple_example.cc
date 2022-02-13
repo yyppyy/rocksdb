@@ -500,6 +500,7 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
         return -1;
     }
 
+    memset(thread_args, 0 , sizeof(thread_args));
     // launch remote threads
     for (int tid = 0; tid < num_thread; ++tid) {
         for (int nid = 0; nid < num_node; ++nid) {
@@ -579,6 +580,7 @@ int main(int argc, char *argv[]) {
 #endif
 #ifdef PROFILE_LATENCY_CDF
     save_cdf("cdf", num_threads_tot);
+    printf("--- Done saving cdf ---\n");
 #endif
     /* do not exit */
     while (1);

@@ -5307,7 +5307,13 @@ Status DBImpl::GetCreationTimeOfOldestFile(uint64_t* creation_time) {
 }  // namespace ROCKSDB_NAMESPACE
 
 std::string pp_names[NUM_PP] = {
-	"db_mutex",
+	"mutex_lock",
+  "rwmutex_rlock",
+  "rwmutex_wlock",
+	"get_db_lock",
+	"put_db_lock",
+  "memtable_rlock",
+  "memtable_wlock",
 	"writer_wait"
 };
 

@@ -43,10 +43,21 @@
 #define MAX_FILE_LEN 64
 
 /* MIND */
-#define NUM_CORES_PER_BLADE 10
+#define NUM_CORES_PER_BLADE 8
 #define MIND_MAX_THREAD NUM_CORES_PER_BLADE
-#define MIND_MAX_BLADE 8
+#define MIND_MAX_BLADE 4
 #define MIND_NUM_MAX_THREAD (MIND_MAX_THREAD * MIND_MAX_BLADE)
+
+/* profile */
+#define PRINT_ROCKSDB_PROFILE_POINTS
+#define PROFILE_LATENCY_CDF
+#ifdef PROFILE_LATENCY_CDF
+#define CDF_BUCKET_NUM 512
+#endif
+
+
+
+
 
 using ROCKSDB_NAMESPACE::DB;
 using ROCKSDB_NAMESPACE::Options;
@@ -59,7 +70,7 @@ using ROCKSDB_NAMESPACE::BlockBasedTableOptions;
 using ROCKSDB_NAMESPACE::SliceTransform;
 using namespace std;
 
-struct hash_test_args {
+struct alignas(PAGE_SIZE) hash_test_args {
     int node_id;
     int thread_id;
     int global_thread_id;
@@ -75,6 +86,10 @@ struct hash_test_args {
     int num_op;
     struct hash_test_ycsb_ops *oplist;
     double res_time_in_ms;
+#ifdef PROFILE_LATENCY_CDF
+    uint32_t get_cdf[CDF_BUCKET_NUM];
+    uint32_t put_cdf[CDF_BUCKET_NUM];
+#endif
 };
 
 struct hash_test_ycsb_ops
@@ -98,11 +113,11 @@ enum{
     YCSB_UPDATE = 2,
 };
 
+struct hash_test_args thread_args[MIND_NUM_MAX_THREAD];
 atomic_int barrier_begin, barrier_end;
 
 //std::string kDBPath = "/mnt/yanpeng/db";
 DB *db;
-
 
 // The prefix is the first min(length(key),`cap_len`) bytes of the key, and
 // all keys are InDomain.
@@ -167,6 +182,44 @@ DB* init_rocksdb(const string DBPath) {
     return db;
 }
 
+#ifdef PROFILE_LATENCY_CDF
+static int latency_to_bkt(unsigned long lat_in_us)
+{
+    if (lat_in_us < 100)
+        return (int)lat_in_us;
+    else if (lat_in_us < 1000)
+        return 100 + ((lat_in_us - 100) / 10);
+    else if (lat_in_us < 10000)
+        return 190 + ((lat_in_us - 1000) / 100);
+    else if (lat_in_us < 100000)
+        return 280 + ((lat_in_us - 10000) / 1000);
+    else if (lat_in_us < 1000000)
+        return 370 + ((lat_in_us - 100000) / 10000);
+    return CDF_BUCKET_NUM - 1;    // over 1 sec
+}
+
+static void save_cdf(string filename, int num_threads) {
+    uint32_t get_cdf[CDF_BUCKET_NUM];
+    uint32_t put_cdf[CDF_BUCKET_NUM];
+    for (int i = 0; i < num_threads; ++i) {
+        for (int j = 0; j < CDF_BUCKET_NUM; ++j) {
+            get_cdf[j] += thread_args[i].get_cdf[j];
+            put_cdf[j] += thread_args[i].put_cdf[j];
+        }
+    }
+    FILE *cdf_file = fopen(filename.c_str(), "w");
+    fprintf(cdf_file, "Read:\n");
+    for (int j = 0; j < CDF_BUCKET_NUM; j++)
+        fprintf(cdf_file, "%u\n", get_cdf[j]);
+    fprintf(cdf_file, "Write:\n");
+    for (int j = 0; j < CDF_BUCKET_NUM; j++)
+        fprintf(cdf_file, "%u\n", put_cdf[j]);
+    fprintf(cdf_file, "\n");
+	fflush(cdf_file);
+    fclose(cdf_file);
+}
+#endif
+
 static int pin_to_core(int core_id) {
     int num_cores = sysconf(_SC_NPROCESSORS_ONLN);
     if (core_id < 0 || core_id >= num_cores)
@@ -184,6 +237,12 @@ static double timediff_in_ms(struct timeval *begin, struct timeval *end) {
     double diff_sec = end->tv_sec - begin->tv_sec,
             diff_usec = end->tv_usec - begin->tv_usec;
     return diff_sec * 1000 + diff_usec / 1000;
+}
+
+static double timediff_in_us(struct timeval *begin, struct timeval *end) {
+    double diff_sec = end->tv_sec - begin->tv_sec,
+            diff_usec = end->tv_usec - begin->tv_usec;
+    return diff_sec * 1000000 + diff_usec;
 }
 
 static int is_write_rec_for_thread(uint64_t op_idx, uint64_t key, int node_id, int num_nodes, int thread_id, int num_threads) {
@@ -356,18 +415,35 @@ static void *run_rocksdb_ycsb(void *args)
     wopts.disableWAL = true;
     string read_value;
     // auto t_start = std::chrono::high_resolution_clock::now();
+#ifdef PROFILE_LATENCY_CDF
+    struct timeval tv1, tv2;
+#endif
     struct timeval tv_begin;
     gettimeofday(&tv_begin, NULL);
     for (uint64_t i = 0; i < num_op; i++) {
         if (oplist[i].opcode == YCSB_READ) {
             //TODO
+#ifdef PROFILE_LATENCY_CDF
+            gettimeofday(&tv1, NULL);
+#endif
             s = db->Get(ropts, to_string(oplist[i].key), &read_value);
+#ifdef PROFILE_LATENCY_CDF
+            gettimeofday(&tv2, NULL);
+            ++t_args->get_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))];
+#endif
             if (!s.ok() && !s.IsNotFound()) {
                 std::printf("%s\n", s.ToString().c_str());
             }
         } else if (oplist[i].opcode == YCSB_UPDATE) {
             //TODO
+#ifdef PROFILE_LATENCY_CDF
+            gettimeofday(&tv1, NULL);
+#endif
             s = db->Put(wopts, to_string(oplist[i].key), string(oplist[i].value));
+#ifdef PROFILE_LATENCY_CDF
+            gettimeofday(&tv2, NULL);
+            ++t_args->put_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))];
+#endif
             if (!s.ok() && !s.IsNotFound()) {
                 std::printf("%s\n", s.ToString().c_str());
             }
@@ -405,11 +481,9 @@ static void *run_rocksdb_ycsb(void *args)
     return NULL;
 }
 
-
 static int launch_workers(int num_node, int num_thread, char *load_file, char *run_file) {
     uint64_t i = 0;
     pthread_t threads[MIND_NUM_MAX_THREAD];
-    struct hash_test_args thread_args[MIND_NUM_MAX_THREAD] = {0};
     void *status;
     int res;
     uint64_t num_ops = 0, total_num_ops = 0;
@@ -499,9 +573,13 @@ int main(int argc, char *argv[]) {
     printf("launching workers on remote blades...\n");
     launch_workers(num_nodes, num_threads_per_node, argv[arg_load_file], argv[arg_run_file]);
 
-    /* */
+    /* profiles */
+#ifdef PRINT_ROCKSDB_PROFILE_POINTS
     print_profile_points();
-
+#endif
+#ifdef PROFILE_LATENCY_CDF
+    save_cdf("cdf", num_threads_tot);
+#endif
     /* do not exit */
     while (1);
 

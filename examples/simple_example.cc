@@ -201,6 +201,8 @@ static int latency_to_bkt(unsigned long lat_in_us)
 static void save_cdf(string filename, int num_threads) {
     uint32_t get_cdf[CDF_BUCKET_NUM];
     uint32_t put_cdf[CDF_BUCKET_NUM];
+    memset(get_cdf, 0, sizeof(get_cdf));
+    memset(put_cdf, 0, sizeof(put_cdf));
     for (int i = 0; i < num_threads; ++i) {
         for (int j = 0; j < CDF_BUCKET_NUM; ++j) {
             get_cdf[j] += thread_args[i].get_cdf[j];
@@ -429,7 +431,7 @@ static void *run_rocksdb_ycsb(void *args)
             s = db->Get(ropts, to_string(oplist[i].key), &read_value);
 #ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv2, NULL);
-            ++t_args->get_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))];
+            ++(t_args->get_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))]);
 #endif
             if (!s.ok() && !s.IsNotFound()) {
                 std::printf("%s\n", s.ToString().c_str());
@@ -442,7 +444,7 @@ static void *run_rocksdb_ycsb(void *args)
             s = db->Put(wopts, to_string(oplist[i].key), string(oplist[i].value));
 #ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv2, NULL);
-            ++t_args->put_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))];
+            ++(t_args->put_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))]);
 #endif
             if (!s.ok() && !s.IsNotFound()) {
                 std::printf("%s\n", s.ToString().c_str());
@@ -500,7 +502,6 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
         return -1;
     }
 
-    memset(thread_args, 0 , sizeof(thread_args));
     // launch remote threads
     for (int tid = 0; tid < num_thread; ++tid) {
         for (int nid = 0; nid < num_node; ++nid) {

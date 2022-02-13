@@ -26,19 +26,18 @@
 
 
 /* rocksdb */
-#define MEMTABLE_SIZE (1L << 29)
+#define MEMTABLE_SIZE (1L << 30)
 #define NUM_MEMTABLE 1
 #define BLK_CACHE_SIZE (64L << 20)
 #define BLK_CACHE_SIZE_MB (BLK_CACHE_SIZE >> 20)
-#define NUM_BUCKET 10240
+#define NUM_BUCKET 102400
 #define NUM_MEMTABLE_LOCK 1024
 
 /* ycsb */
 #define MAX_VALUE_SIZE 1024
 #define MAX_LINE_SIZE (MAX_VALUE_SIZE + 256)
-//#define MAX_OP_NUM  1000000UL
-#define MAX_LOAD_OP_NUM  16000UL
-#define MAX_RUN_OP_NUM  32000UL
+#define MAX_LOAD_OP_NUM  1000000UL
+#define MAX_RUN_OP_NUM  1000000UL
 #define LOWER_DATASET_FACTOR 1
 #define MAX_FILE_LEN 64
 
@@ -82,6 +81,7 @@ struct alignas(PAGE_SIZE) hash_test_args {
     //pthread_barrier_t *barrier_begin;
     //pthread_barrier_t *barrier_end;
     atomic_int *barrier_begin;
+    atomic_int *barrier_mid;
     atomic_int *barrier_end;
     int num_op;
     struct hash_test_ycsb_ops *oplist;
@@ -114,7 +114,7 @@ enum{
 };
 
 struct hash_test_args thread_args[MIND_NUM_MAX_THREAD];
-atomic_int barrier_begin, barrier_end;
+atomic_int barrier_begin, barrier_mid, barrier_end;
 
 //std::string kDBPath = "/mnt/yanpeng/db";
 DB *db;
@@ -323,7 +323,7 @@ static void *run_rocksdb_ycsb(void *args)
     int64_t read_len;
     double t_tot = 0;
     //pthread_barrier_t *barrier_begin, *barrier_end;
-    atomic_int *barrier_begin, *barrier_end;
+    atomic_int *barrier_begin, *barrier_mid, *barrier_end;
     volatile char *val = (char *)malloc(MAX_VALUE_SIZE);
     memset((void *)val, MAX_VALUE_SIZE, 0);
 
@@ -335,6 +335,7 @@ static void *run_rocksdb_ycsb(void *args)
     num_thread_tot = t_args->num_thread_tot;
     global_thread_id = blade_id * num_thread_per_blade + thread_id;
     barrier_begin = t_args->barrier_begin;
+    barrier_mid = t_args->barrier_mid;
     barrier_end = t_args->barrier_end;
     load_file = t_args->load_file;
     run_file = t_args->run_file;
@@ -399,9 +400,17 @@ static void *run_rocksdb_ycsb(void *args)
         num_op = t_args->num_op;
     }
 
+    if (global_thread_id == 0) {
+        clear_profile_points();
+    }
+
     //pin_to_core(global_thread_id % MIND_MAX_THREAD);
     //printf("* YCSB run gtid[%d] tid[%d] cpu[%d] num_op[%lu] oplist_off[%ld]\n",
     //    global_thread_id, thread_id, global_thread_id % MIND_MAX_THREAD, num_op, (oplist - (t_args - thread_id)->oplist));
+
+    barrier_mid->fetch_add(1, memory_order_release);
+    while (barrier_mid->load(memory_order_acquire) != num_thread_tot)
+        ;
 
 #ifdef DISABLE_CONCURRENT_INSERT
         sleep(blade_id * 30);
@@ -495,6 +504,7 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
     //pthread_barrier_init(&barrier_begin, NULL, num_thread_tot);
     //pthread_barrier_init(&barrier_end, NULL, num_thread_tot + 1);
     barrier_begin.store(0, memory_order_release);
+    barrier_mid.store(0, memory_order_release);
     barrier_end.store(0, memory_order_release);
 
     if (num_thread_tot > MIND_NUM_MAX_THREAD) {
@@ -518,6 +528,7 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
             memset(thread_args[i].run_file, 0, sizeof(thread_args[i].run_file));
             memcpy(thread_args[i].run_file, run_file, strlen(run_file));
             thread_args[i].barrier_begin = &barrier_begin;
+            thread_args[i].barrier_mid = &barrier_mid;
             thread_args[i].barrier_end = &barrier_end;
 
             res = pthread_create(&threads[i], NULL, run_rocksdb_ycsb, &thread_args[i]);

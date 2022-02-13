@@ -46,6 +46,7 @@ struct alignas(PAGE_SIZE) profile_point_arr {
 };
 
 void print_profile_points(void);
+void clear_profile_points(void);
 void profile_add(int tid, int pp, double time_us);
 
 /*

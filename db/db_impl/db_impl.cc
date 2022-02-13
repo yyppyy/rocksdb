@@ -5333,6 +5333,10 @@ void print_profile_points(void) {
     }
 }
 
+void clear_profile_points(void) {
+  memset(pps, 0, sizeof(pps));
+}
+
 void profile_add(int tid, int pp, double time_us) {
     tid = tid % MAX_PROFILE_THREADS;
     ++(pps[tid].arr[pp].nr);

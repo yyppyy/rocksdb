@@ -186,7 +186,13 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
 
   if ((state & goal_mask) == 0) {
     TEST_SYNC_POINT_CALLBACK("WriteThread::AwaitState:BlockingWaiting", w);
+#ifdef CONFIG_PROFILE_POINTS
+    PROFILE_START
+#endif
     state = BlockingAwaitState(w, goal_mask);
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(pthread_self(), PP_WRITE_BLOCKWAIT)
+#endif
   }
 
   if (update_ctx) {

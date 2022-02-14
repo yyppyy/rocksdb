@@ -5314,7 +5314,8 @@ std::string pp_names[NUM_PP] = {
 	"put_db_lock",
   "memtable_rlock",
   "memtable_wlock",
-	"writer_wait"
+	"writer_wait",
+  "writer_blocking_wait"
 };
 
 struct profile_point_arr pps[MAX_PROFILE_THREADS];

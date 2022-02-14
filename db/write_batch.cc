@@ -359,13 +359,14 @@ Status ReadRecordFromWriteBatch(Slice* input, char* tag,
     case kTypeColumnFamilyDeletion:
     case kTypeColumnFamilySingleDeletion:
       if (!GetVarint32(input, column_family)) {
+        printf("bug1 input[%p] input.data[%p] input.size[%lu] key[%hhu]\n", input, input->data(), input->size(), *tag);
         return Status::Corruption("bad WriteBatch Delete");
       }
       FALLTHROUGH_INTENDED;
     case kTypeDeletion:
     case kTypeSingleDeletion:
       if (!GetLengthPrefixedSlice(input, key)) {
-        printf("input[%p] input.data[%p] input.size[%lu] key[%hhu]\n", input, input->data(), input->size(), *tag);
+        printf("bug2 input[%p] input.data[%p] input.size[%lu] key[%hhu]\n", input, input->data(), input->size(), *tag);
         return Status::Corruption("bad WriteBatch Delete");
       }
       break;

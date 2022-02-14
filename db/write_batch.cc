@@ -365,6 +365,7 @@ Status ReadRecordFromWriteBatch(Slice* input, char* tag,
     case kTypeDeletion:
     case kTypeSingleDeletion:
       if (!GetLengthPrefixedSlice(input, key)) {
+        printf("input[%p] input.data[%p] input.size[%lu] key[%hhu]\n", input, input->data(), input->size(), *tag);
         return Status::Corruption("bad WriteBatch Delete");
       }
       break;

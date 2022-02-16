@@ -49,7 +49,7 @@
 
 /* profile */
 #define PRINT_ROCKSDB_PROFILE_POINTS
-#define PROFILE_LATENCY_CDF
+// #define PROFILE_LATENCY_CDF
 #ifdef PROFILE_LATENCY_CDF
 #define CDF_BUCKET_NUM 512
 #endif
@@ -400,9 +400,7 @@ static void *run_rocksdb_ycsb(void *args)
         num_op = t_args->num_op;
     }
 
-    if (global_thread_id == 0) {
-        clear_profile_points();
-    }
+    clear_profile_points();
 
     //pin_to_core(global_thread_id % MIND_MAX_THREAD);
     //printf("* YCSB run gtid[%d] tid[%d] cpu[%d] num_op[%lu] oplist_off[%ld]\n",
@@ -433,7 +431,6 @@ static void *run_rocksdb_ycsb(void *args)
     gettimeofday(&tv_begin, NULL);
     for (uint64_t i = 0; i < num_op; i++) {
         if (oplist[i].opcode == YCSB_READ) {
-            //TODO
 #ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv1, NULL);
 #endif
@@ -446,7 +443,6 @@ static void *run_rocksdb_ycsb(void *args)
                 std::printf("%s\n", s.ToString().c_str());
             }
         } else if (oplist[i].opcode == YCSB_UPDATE) {
-            //TODO
 #ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv1, NULL);
 #endif
@@ -474,6 +470,8 @@ static void *run_rocksdb_ycsb(void *args)
     std::chrono::duration<double, std::milli> t_double = t_end - t_start;
     t_args->res_time_in_ms = t_tot = t_double.count();
     */
+    
+    report_profile_points();
 
     printf("** Finished [thread: %d] %lu | %.3lf MOPS, finished in %.2lf ms\n",
                 global_thread_id, num_op, ((double)num_op / t_tot / 1000), t_tot);
@@ -485,7 +483,7 @@ static void *run_rocksdb_ycsb(void *args)
         ;
 
     // don't exit
-    while (1);
+    // while (1);
 
     // clean up memory
     free((char *)val);
@@ -558,6 +556,12 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
     } else {
         printf("* No total time!\n");
     }
+
+    printf("Joining threads...\n");
+    for (i = 0; i < num_thread_tot; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    printf("Done joining threads.\n");
 }
 
 int main(int argc, char *argv[]) {

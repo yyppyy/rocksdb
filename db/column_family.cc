@@ -1223,7 +1223,7 @@ SuperVersion* ColumnFamilyData::GetThreadLocalSuperVersion(DBImpl* db) {
 #endif
       db->mutex()->Lock();
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(pthread_self(), PP_DB_RLOCK)
+  PROFILE_LEAVE(PP_DB_RLOCK)
 #endif
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.

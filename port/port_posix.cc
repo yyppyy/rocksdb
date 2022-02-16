@@ -92,7 +92,7 @@ void Mutex::Lock() {
 #endif
 
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(pthread_self(), PP_MUTEX)
+  PROFILE_LEAVE(PP_MUTEX)
 #endif
 }
 
@@ -177,7 +177,7 @@ void RWMutex::ReadLock() {
 #endif
   PthreadCall("read lock", pthread_rwlock_rdlock(&mu_));
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(pthread_self(), PP_RWMUTEX_RLOCK)
+  PROFILE_LEAVE(PP_RWMUTEX_RLOCK)
 #endif
 }
 
@@ -187,7 +187,7 @@ void RWMutex::WriteLock() {
 #endif
   PthreadCall("write lock", pthread_rwlock_wrlock(&mu_));
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(pthread_self(), PP_RWMUTEX_WLOCK)
+  PROFILE_LEAVE(PP_RWMUTEX_WLOCK)
 #endif
 }
 

@@ -191,7 +191,7 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
 #endif
     state = BlockingAwaitState(w, goal_mask);
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(pthread_self(), PP_WRITE_BLOCKWAIT)
+  PROFILE_LEAVE(PP_WRITE_BLOCKWAIT)
 #endif
   }
 
@@ -420,7 +420,7 @@ void WriteThread::JoinBatchGroup(Writer* w) {
                       STATE_PARALLEL_MEMTABLE_WRITER | STATE_COMPLETED,
                &jbg_ctx);
 #ifdef CONFIG_PROFILE_POINTS
-    PROFILE_LEAVE(pthread_self(), PP_WRITE_WAIT);
+    PROFILE_LEAVE(PP_WRITE_WAIT);
 #endif
     TEST_SYNC_POINT_CALLBACK("WriteThread::JoinBatchGroup:DoneWaiting", w);
   }

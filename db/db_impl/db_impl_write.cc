@@ -223,7 +223,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
 #endif
   mutex_.Lock();
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(pthread_self(), PP_DB_WLOCK)
+  PROFILE_LEAVE(PP_DB_WLOCK)
 #endif
 
   bool need_log_sync = write_options.sync;

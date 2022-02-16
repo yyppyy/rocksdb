@@ -16,12 +16,16 @@
 #pragma once
 
 #include <string>
+#include <atomic>
 
 #define CONFIG_PROFILE_POINTS
 #define MAX_PROFILE_POINTS 32
 #define MAX_PROFILE_THREADS 16
 #ifndef PAGE_SIZE
 #define PAGE_SIZE 4096
+#endif
+#ifndef CACHE_SIZE
+#define CACHE_SIZE (PAGE_SIZE * 16)
 #endif
 
 enum {
@@ -42,38 +46,29 @@ struct profile_point {
     double time_us;
 };
 
+struct atomic_profile_point {
+	std::atomic_ulong nr;
+	std::atomic<double> time_us;
+};
+
 struct alignas(PAGE_SIZE) profile_point_arr {
 	struct profile_point arr[MAX_PROFILE_POINTS];
 };
 
+struct alignas(PAGE_SIZE) atomic_profile_point_arr {
+	struct atomic_profile_point arr[MAX_PROFILE_POINTS];
+};
+
 void print_profile_points(void);
 void clear_profile_points(void);
-void profile_add(int tid, int pp, double time_us);
-
-/*
-#define PROFILE_POINT_TIME \
-	unsigned long t_start __maybe_unused;
-
-#define PROFILE_START             \
-	do                                  \
-	{                                   \
-		auto t_start = std::chrono::high_resolution_clock::now(); \
-	} while (0)
-
-#define PROFILE_LEAVE(tid, pp)                                         \
-	do                                                              \
-	{                                                               \
-		auto t_end = std::chrono::high_resolution_clock::now();                                \
-		std::chrono::duration<double, std::micro> t_double = t_end - t_start;                              \
-		profile_add(tid, pp, t_double.count())										\
-	} while (0)
-*/
+void report_profile_points(void);
+void profile_add(int pp, double time_us);
 
 #define PROFILE_START             \
 	auto t_start = std::chrono::high_resolution_clock::now();
 
-#define PROFILE_LEAVE(tid, pp)		\
+#define PROFILE_LEAVE(pp)		\
 		auto t_end = std::chrono::high_resolution_clock::now();                                \
 		std::chrono::duration<double, std::micro> t_double = t_end - t_start;                              \
-		profile_add(tid, pp, t_double.count());
+		profile_add(pp, t_double.count());
 

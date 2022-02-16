@@ -5318,28 +5318,32 @@ std::string pp_names[NUM_PP] = {
   "writer_blocking_wait"
 };
 
-struct profile_point_arr pps[MAX_PROFILE_THREADS];
+thread_local struct profile_point_arr pps;
+struct atomic_profile_point_arr pps_global;
 
 void print_profile_points(void) {
     printf("--- profile points ---\n");
     for (int pp = 0; pp < NUM_PP; ++pp) {
-        unsigned long nr = 0;
-        double avg_us, total_us = 0;
-        for (int tid = 0; tid < MAX_PROFILE_THREADS; ++tid) {
-            nr += pps[tid].arr[pp].nr;
-            total_us += pps[tid].arr[pp].time_us;
-        }
-        avg_us = total_us / nr;
-        printf("%s nr[%lu] total[%lfus] avg[%lfus]\n", pp_names[pp].c_str(), nr, total_us, avg_us);
+        printf("%s nr[%lu] total[%lfus] avg[%lfus]\n", pp_names[pp].c_str(),
+          pps_global.arr[pp].nr.load(), pps_global.arr[pp].time_us.load(),
+          pps_global.arr[pp].time_us.load() / pps_global.arr[pp].nr.load());
     }
 }
 
 void clear_profile_points(void) {
-  memset(pps, 0, sizeof(pps));
+  memset(&pps, 0, sizeof(pps));
 }
 
-void profile_add(int tid, int pp, double time_us) {
-    tid = tid % MAX_PROFILE_THREADS;
-    ++(pps[tid].arr[pp].nr);
-    pps[tid].arr[pp].time_us += time_us;
+void report_profile_points(void) {
+  for (int pp = 0; pp < NUM_PP; ++pp) {
+    auto &_pp = pps_global.arr[pp];
+    _pp.nr.fetch_add(pps.arr[pp].nr);
+    for (double n = _pp.time_us.load(); !_pp.time_us.compare_exchange_strong(n, n + pps.arr[pp].time_us);)
+      ;
+  }
+}
+
+void profile_add(int pp, double time_us) {
+    ++(pps.arr[pp].nr);
+    pps.arr[pp].time_us += time_us;
 }

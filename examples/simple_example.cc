@@ -483,7 +483,7 @@ static void *run_rocksdb_ycsb(void *args)
         ;
 
     // don't exit
-    // while (1);
+    while (1);
 
     // clean up memory
     free((char *)val);
@@ -557,11 +557,13 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
         printf("* No total time!\n");
     }
 
+    /*
     printf("Joining threads...\n");
     for (i = 0; i < num_thread_tot; i++) {
         pthread_join(threads[i], NULL);
     }
     printf("Done joining threads.\n");
+    */
 }
 
 int main(int argc, char *argv[]) {

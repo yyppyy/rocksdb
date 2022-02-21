@@ -424,31 +424,27 @@ static void *run_rocksdb_ycsb(void *args)
     wopts.disableWAL = true;
     string read_value;
     // auto t_start = std::chrono::high_resolution_clock::now();
-#ifdef PROFILE_LATENCY_CDF
     struct timeval tv1, tv2;
-#endif
-    struct timeval tv_begin;
-    gettimeofday(&tv_begin, NULL);
+    //struct timeval tv_begin;
+    //gettimeofday(&tv_begin, NULL);
     for (uint64_t i = 0; i < num_op; i++) {
         if (oplist[i].opcode == YCSB_READ) {
-#ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv1, NULL);
-#endif
             s = db->Get(ropts, to_string(oplist[i].key), &read_value);
-#ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv2, NULL);
+            t_tot += timediff_in_ms(&tv1, &tv2);
+#ifdef PROFILE_LATENCY_CDF
             ++(t_args->get_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))]);
 #endif
             if (!s.ok() && !s.IsNotFound()) {
                 std::printf("%s\n", s.ToString().c_str());
             }
         } else if (oplist[i].opcode == YCSB_UPDATE) {
-#ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv1, NULL);
-#endif
             s = db->Put(wopts, to_string(oplist[i].key), string(oplist[i].value));
-#ifdef PROFILE_LATENCY_CDF
             gettimeofday(&tv2, NULL);
+            t_tot += timediff_in_ms(&tv1, &tv2);
+#ifdef PROFILE_LATENCY_CDF
             ++(t_args->put_cdf[latency_to_bkt(timediff_in_us(&tv1, &tv2))]);
 #endif
             if (!s.ok() && !s.IsNotFound()) {
@@ -458,12 +454,12 @@ static void *run_rocksdb_ycsb(void *args)
             printf("unexpected opcode[%d]\n", oplist[i].opcode);
         }
         if (i % print_period == 0) {
-            std:printf("%lu ops done\n", i);
+            printf("%lu ops done\n", i);
         }
     }
-    struct timeval tv_end;
-    gettimeofday(&tv_end, NULL);
-    t_args->res_time_in_ms = t_tot = timediff_in_ms(&tv_begin, &tv_end);
+    //struct timeval tv_end;
+    //gettimeofday(&tv_end, NULL);
+    t_args->res_time_in_ms = t_tot;
 
     /*
     auto t_end = std::chrono::high_resolution_clock::now();

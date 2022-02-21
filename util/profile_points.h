@@ -29,15 +29,16 @@
 #endif
 
 enum {
-    PP_MUTEX = 0,
-	PP_RWMUTEX_RLOCK,
-	PP_RWMUTEX_WLOCK,
+    //PP_MUTEX = 0,
+	//PP_RWMUTEX_RLOCK,
+	//PP_RWMUTEX_WLOCK,
 	PP_DB_RLOCK,
 	PP_DB_WLOCK,
 	PP_MEMTABLE_RLOCK,
 	PP_MEMTABLE_WLOCK,
 	PP_WRITE_WAIT,
 	PP_WRITE_BLOCKWAIT,
+	PP_WRITE_CS,
 	NUM_PP
 };
 
@@ -64,11 +65,13 @@ void clear_profile_points(void);
 void report_profile_points(void);
 void profile_add(int pp, double time_us);
 
-#define PROFILE_START             \
-	auto t_start = std::chrono::high_resolution_clock::now();
+#define _PP_TIME(pp, var)	__##pp##var
+
+#define PROFILE_START(pp)             \
+	auto _PP_TIME(pp, t_start) = std::chrono::high_resolution_clock::now();
 
 #define PROFILE_LEAVE(pp)		\
-		auto t_end = std::chrono::high_resolution_clock::now();                                \
-		std::chrono::duration<double, std::micro> t_double = t_end - t_start;                              \
-		profile_add(pp, t_double.count());
+		auto _PP_TIME(pp, t_end) = std::chrono::high_resolution_clock::now();                                \
+		std::chrono::duration<double, std::micro> _PP_TIME(pp, t_double) = _PP_TIME(pp, t_end) - _PP_TIME(pp, t_start);                              \
+		profile_add(pp, _PP_TIME(pp, t_double).count());
 

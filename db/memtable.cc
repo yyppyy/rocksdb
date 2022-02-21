@@ -760,11 +760,11 @@ static bool SaveValue(void* arg, const char* entry) {
       case kTypeValue: {
         if (s->inplace_update_support) {
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_START
+          PROFILE_START(PP_MEMTABLE_RLOCK)
 #endif
           s->mem->GetLock(s->key->user_key())->ReadLock();
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(PP_MEMTABLE_RLOCK)
+          PROFILE_LEAVE(PP_MEMTABLE_RLOCK)
 #endif
         }
         Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
@@ -1081,11 +1081,11 @@ Status MemTable::Update(SequenceNumber seq, const Slice& key,
           char* p =
               EncodeVarint32(const_cast<char*>(key_ptr) + key_length, new_size);
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_START
+          PROFILE_START(PP_MEMTABLE_WLOCK)
 #endif
           WriteLock wl(GetLock(lkey.user_key()));
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(PP_MEMTABLE_WLOCK)
+          PROFILE_LEAVE(PP_MEMTABLE_WLOCK)
 #endif
           memcpy(p, value.data(), value.size());
           assert((unsigned)((p + value.size()) - entry) ==

@@ -1219,11 +1219,11 @@ SuperVersion* ColumnFamilyData::GetThreadLocalSuperVersion(DBImpl* db) {
     if (sv && sv->Unref()) {
       RecordTick(ioptions_.stats, NUMBER_SUPERVERSION_CLEANUPS);
 #ifdef CONFIG_PROFILE_POINTS
-      PROFILE_START
+      PROFILE_START(PP_DB_RLOCK)
 #endif
       db->mutex()->Lock();
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_LEAVE(PP_DB_RLOCK)
+      PROFILE_LEAVE(PP_DB_RLOCK)
 #endif
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.

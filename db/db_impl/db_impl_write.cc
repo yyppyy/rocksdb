@@ -166,6 +166,9 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   StopWatch write_sw(immutable_db_options_.clock, stats_, DB_WRITE);
 
   write_thread_.JoinBatchGroup(&w);
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_START(PP_WRITE_CS)
+#endif
   if (w.state == WriteThread::STATE_PARALLEL_MEMTABLE_WRITER) {
     // we are a non-leader in a parallel group
 
@@ -203,6 +206,9 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
     if (seq_used != nullptr) {
       *seq_used = w.sequence;
     }
+#ifdef CONFIG_PROFILE_POINTS
+    PROFILE_LEAVE(PP_WRITE_CS)
+#endif
     // write is complete and leader has updated sequence
     return w.FinalStatus();
   }
@@ -219,7 +225,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
   uint64_t last_sequence = kMaxSequenceNumber;
 
 #ifdef CONFIG_PROFILE_POINTS
-  PROFILE_START
+  PROFILE_START(PP_DB_WLOCK)
 #endif
   mutex_.Lock();
 #ifdef CONFIG_PROFILE_POINTS
@@ -476,6 +482,9 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
       versions_->SetLastSequence(last_sequence);
     }
     MemTableInsertStatusCheck(w.status);
+#ifdef CONFIG_PROFILE_POINTS
+  PROFILE_LEAVE(PP_WRITE_CS)
+#endif
     write_thread_.ExitAsBatchGroupLeader(write_group, status);
   }
 

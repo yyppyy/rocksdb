@@ -36,7 +36,7 @@
 /* ycsb */
 #define MAX_VALUE_SIZE 1024
 #define MAX_LINE_SIZE (MAX_VALUE_SIZE + 256)
-#define MAX_LOAD_OP_NUM  200000UL
+#define MAX_LOAD_OP_NUM  1000UL
 #define MAX_RUN_OP_NUM  200000UL
 #define LOWER_DATASET_FACTOR 1
 #define MAX_FILE_LEN 64
@@ -531,7 +531,7 @@ static int launch_workers(int num_node, int num_thread, char *load_file, char *r
                 exit(-1);
             }
 
-            sleep(1);
+            // sleep(1);
         }
     }
 

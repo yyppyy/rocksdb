@@ -36,8 +36,8 @@
 /* ycsb */
 #define MAX_VALUE_SIZE 1024
 #define MAX_LINE_SIZE (MAX_VALUE_SIZE + 256)
-#define MAX_LOAD_OP_NUM  1000UL
-#define MAX_RUN_OP_NUM  200000UL
+#define MAX_LOAD_OP_NUM 100000UL
+#define MAX_RUN_OP_NUM 200000UL
 #define LOWER_DATASET_FACTOR 1
 #define MAX_FILE_LEN 64
 
@@ -401,6 +401,8 @@ static void *run_rocksdb_ycsb(void *args)
     }
 
     clear_profile_points();
+    printf("local profile point cleared by tid[%d], done warm up, sleep 60s, please clear kernel profile points\n", global_thread_id);
+    sleep(60);
 
     //pin_to_core(global_thread_id % MIND_MAX_THREAD);
     //printf("* YCSB run gtid[%d] tid[%d] cpu[%d] num_op[%lu] oplist_off[%ld]\n",
